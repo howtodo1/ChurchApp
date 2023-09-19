@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navigation_home"
+        android:icon="@drawable/praying_hands_svgrepo_com"
+        android:title="Pray" />
+
+    <item
+        android:id="@+id/navigation_dashboard"
+        android:icon="@drawable/speech_1_svgrepo_com"
+        android:title="Sermons" />
+
+    <item
+        android:id="@+id/navigation_notifications"
+        android:icon="@drawable/calendar_exclamation_svgrepo_com"
+        android:title="Events" />
+    <item
+        android:id="@+id/navigation_give"
+        android:icon="@drawable/donate_heart_svgrepo_com"
+        android:title="Give" />
+
+</menu>
