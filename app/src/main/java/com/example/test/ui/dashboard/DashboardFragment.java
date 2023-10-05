@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.example.test.MainActivity;
 import com.example.test.R;
 import com.example.test.databinding.FragmentDashboardBinding;
 
@@ -28,12 +29,6 @@ public class DashboardFragment extends Fragment {
         binding = FragmentDashboardBinding.inflate(inflater, container, false);
         View rootView = inflater.inflate(R.layout.fragment_dashboard, container, false);
         View root = binding.getRoot();
-        WebView webView1 = (WebView) rootView.findViewById(R.id.sermons);
-        if (webView1 != null) { // Check if WebView1 is not null
-            WebSettings webSettings1 = webView1.getSettings();
-            webSettings1.setJavaScriptEnabled(true);
-            webView1.loadUrl("https://stthomas-svale.org/worship-schedule/");
-        }
         return root;
     }
 
