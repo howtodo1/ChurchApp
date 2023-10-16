@@ -1,6 +1,8 @@
 package com.example.test;
 
 import android.app.ActionBar;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
@@ -13,6 +15,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -33,12 +36,18 @@ import android.webkit.WebView;
 
 import com.example.test.databinding.ActivityMainBinding;
 import com.google.android.material.navigation.NavigationBarView;
+import net.fortuna.ical4j.data.CalendarBuilder;
+import net.fortuna.ical4j.data.ParserException;
+import net.fortuna.ical4j.model.Calendar;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.net.URL;
+import java.util.Scanner;
 
 public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
-    private static MainActivity instance;
-
     private FragmentManager fragmentManager = getSupportFragmentManager();
 
     // Add a method to switch to another fragment
@@ -48,9 +57,24 @@ public class MainActivity extends AppCompatActivity {
     @Deprecated
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        System.out.println("Insideeeeeeeeeeeee on Create");
+        System.out.println("Loading...");
+        NetworkActivity na = new NetworkActivity();
+        Calendar calendar = na.run();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "Events";
+            String description = "Notifies user for events";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel("events", name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this.
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
         binding.navView.setOnItemSelectedListener(item -> {
             /*
             Fragment fragment;
@@ -178,6 +202,7 @@ public class MainActivity extends AppCompatActivity {
             webView4.loadUrl("https://stthomas-svale.org/give/");
         }
     }
+
         public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
             System.out.println("vol down");
@@ -185,6 +210,13 @@ public class MainActivity extends AppCompatActivity {
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
             System.out.println("vol up");
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "events")
+                    .setContentTitle("My notification")
+                    .setContentText("Much longer text that cannot fit one line...")
+                    .setStyle(new NotificationCompat.BigTextStyle()
+                            .bigText("Much longer text that cannot fit one line..."))
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
             return true;
         }
         return super.onKeyDown(keyCode, event);
