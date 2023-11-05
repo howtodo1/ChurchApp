@@ -1,49 +1,36 @@
 package com.example.test;
 
-import android.app.ActionBar;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-
-import com.example.test.ui.dashboard.DashboardFragment;
-import com.example.test.ui.give.GiveFragment;
-import com.example.test.ui.home.HomeFragment;
-import com.example.test.ui.notifications.NotificationsFragment;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.NotificationCompat;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
-
-import android.view.MenuItem;
-import android.view.Surface;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.WindowInsets;
-import android.widget.Button;
 import android.view.KeyEvent;
+import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
+import androidx.fragment.app.FragmentManager;
+
 import com.example.test.databinding.ActivityMainBinding;
-import com.google.android.material.navigation.NavigationBarView;
+
 import net.fortuna.ical4j.data.CalendarBuilder;
-import net.fortuna.ical4j.data.ParserException;
 import net.fortuna.ical4j.model.Calendar;
 
-import java.io.IOException;
+import org.apache.commons.lang3.time.DateUtils;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.URL;
-import java.util.Scanner;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -59,7 +46,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         System.out.println("Loading...");
         NetworkActivity na = new NetworkActivity();
-        Calendar calendar = na.run();
+        na.execute();
+       // Calendar calendar = na.run();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             CharSequence name = "Events";
             String description = "Notifies user for events";
@@ -215,12 +203,134 @@ public class MainActivity extends AppCompatActivity {
                     .setContentText("Much longer text that cannot fit one line...")
                     .setStyle(new NotificationCompat.BigTextStyle()
                             .bigText("Much longer text that cannot fit one line..."))
+                    .setSmallIcon(R.drawable.ic_notifications_black_24dp)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.notify(0, builder.build());
 
             return true;
         }
         return super.onKeyDown(keyCode, event);
     }
 
+    public class NetworkActivity extends AsyncTask<Void, Void, Void> {
+        public List<Event> parseICalData(InputStream icalData, Date startDate) {
+            List<Event> events = new ArrayList<>();
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(icalData));
+            Event currentEvent = null;
+            boolean inEvent = false;
 
+            try {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    line = line.trim();
+                    if (line.startsWith("BEGIN:VEVENT")) {
+                        currentEvent = new Event();
+                        inEvent = true;
+                    } else if (line.startsWith("END:VEVENT")) {
+                        if (currentEvent != null) {
+                            //System.out.println(currentEvent);
+                            Date eventStartDate = currentEvent.getStartDate();
+                            if (eventStartDate != null && eventStartDate.after(startDate)) {
+                                events.add(currentEvent);
+                            }
+                            currentEvent = null;
+                        }
+                        inEvent = false;
+                    } else if (inEvent && line.startsWith("SUMMARY:")) {
+                        currentEvent.setSummary(line.substring(8));
+                    } else if (inEvent && line.startsWith("DESCRIPTION:")) {
+                        System.out.println(line.substring(12));
+                        currentEvent.setDescription(line.substring(12));
+                    } else if (inEvent && line.startsWith("DTSTART:")) {
+                        String dateString = line.substring(8);
+                        currentEvent.setStartDate(parseICalDate(dateString));
+                    } else if (inEvent && line.startsWith("DTEND:")) {
+                        String dateString = line.substring(6);
+                        currentEvent.setEndDate(parseICalDate(dateString));
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            return events;
+        }
+
+        public Date parseICalDate(String dateString) throws ParseException {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss'Z'");
+            return dateFormat.parse(dateString);
+        }
+
+        public class Event {
+            private String summary;
+            private String description;
+            private Date startDate;
+            private Date endDate;
+
+            public String getSummary() {
+                return summary;
+            }
+
+            public void setSummary(String summary) {
+                this.summary = summary;
+            }
+
+            public String getDescription() {
+                return description;
+            }
+
+            public void setDescription(String description) {
+                this.description = description;
+            }
+
+            public Date getStartDate() {
+                return startDate;
+            }
+
+            public void setStartDate(Date startDate) {
+                this.startDate = startDate;
+            }
+
+            public Date getEndDate() {
+                return endDate;
+            }
+
+            public void setEndDate(Date endDate) {
+                this.endDate = endDate;
+            }
+
+            @Override
+            public String toString() {
+                return "Event{" +
+                        "summary='" + summary + '\'' +
+                        ", description='" + description + '\'' +
+                        ", startDate=" + startDate +
+                        ", endDate=" + endDate +
+                        '}';
+            }
+        }
+        @Override
+        protected Void doInBackground(Void... params) {
+            try  {
+                // Get the Ical file from the URL
+                System.out.println("running");
+                URL url = new URL("https://www.google.com/calendar/ical/stthomas-svale.us_shcvjmelaoseoq3q4vsqtetdqs@group.calendar.google.com/public/basic.ics");
+                Date startDate = new Date(); // Example start date (replace with your desired start date)
+                List<Event> events = parseICalData(url.openStream(), startDate);
+
+                for (Event event : events) {
+                    System.out.println(event);
+                }
+                System.out.println(startDate);
+                return null;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+
+    }
 }
